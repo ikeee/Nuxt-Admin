@@ -1,4 +1,5 @@
 import { createError } from 'h3'
+import { verifyCaptcha } from '~~/server/utils/captcha'
 
 const USERNAME_RE = /^[a-zA-Z0-9_]{3,50}$/
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -6,7 +7,13 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const isDev = process.env.NODE_ENV !== 'production'
 
 export default defineEventHandler(async (event) => {
-  const body = await readBody<{ username?: string, email?: string, password?: string }>(event)
+  const body = await readBody<{
+    username?: string
+    email?: string
+    password?: string
+    captchaId?: string
+    captchaText?: string
+  }>(event)
   const username = body?.username?.trim()
   const email = body?.email?.trim().toLowerCase()
   const password = body?.password
@@ -19,6 +26,11 @@ export default defineEventHandler(async (event) => {
   }
   if (!password || password.length < 8) {
     throw createError({ statusCode: 400, statusMessage: 'Bad Request', message: 'Password must be at least 8 characters' })
+  }
+
+  const captchaEnabled = await getConfigValue<boolean>('security.captchaEnabled', true)
+  if (captchaEnabled && !(await verifyCaptcha(body?.captchaId, body?.captchaText))) {
+    throw createError({ statusCode: 400, statusMessage: 'Bad Request', message: 'Invalid or expired captcha' })
   }
 
   // Rate limit: max 5 registrations per IP+email every hour

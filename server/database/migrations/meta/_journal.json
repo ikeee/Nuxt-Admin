@@ -15,6 +15,20 @@
       "when": 1788052600000,
       "tag": "0001_lofty_content_column",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792579051455,
+      "tag": "0002_loving_magus",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1792581722265,
+      "tag": "0003_past_magik",
+      "breakpoints": true
     }
   ]
 }

@@ -30,6 +30,7 @@
 - **持久化、可撤销会话令牌**（`tokens` 表），`httpOnly` Cookie 会话。
 - 基于**共享角色表**的 RBAC（`admin` / `user`），`requireUser` / `requireAdmin` 服务端守卫 + `auth` / `admin` 前端路由中间件。
 - 个人中心：资料修改、头像上传（压缩 + 裁剪）、改密码；管理端可查看用户**最后登录时间与 IP**。
+- **会员权益门控**：`memberships` 表保存 `planCode / status / expiresAt`，新注册用户自动获得 `free` 权益；`/_auth` 供 nginx `auth_request` 校验登录状态与权益，并回传 `X-Auth-User`，便于后续按用户计量或接入付费方案。
 
 ### 元数据驱动的通用 CRUD（核心）
 - **Schema 自动发现**：注册 Drizzle schema 后，任何 `pgTable` 暴露的表都可经通用接口访问；字段类型、校验、关系、列宽等可按命名约定与列元数据自动推断（`inferFieldType` / `applyFieldNamingHints`）。
@@ -156,7 +157,7 @@ pnpm preview
 
 > 说明：`server/database/ensure.ts` 能自动创建目标数据库；是否在启动时自动执行迁移由 `AUTO_MIGRATE=true` 控制。生产环境更推荐在发布流水线中显式执行 `pnpm db:migrate`。
 
-**默认管理员账号**（由种子脚本创建）：用户名 `admin`，密码 `Admin@123`，邮箱 `admin@example.com`。
+**默认管理员账号**：开发环境为 `admin / Admin@123`；生产环境首次 seed 必须显式配置 `SEED_ADMIN_PASSWORD`，否则会拒绝启动。测试账号 `test01`–`test30` 只会在非生产环境创建。
 
 ---
 

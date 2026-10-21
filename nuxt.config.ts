@@ -35,7 +35,7 @@ export default defineNuxtConfig({
   // layer is added the same way: an `./modules/<name>` folder with a matching
   // `<NAME>_ENABLED=true` env switch (or a path in EXTENDS_MODULES) and
   // nothing else in the host codebase.
-  extends: [...new Set(['./extends/blog', ...ENV_EXTENDS, ...ENABLED_MODULES])],
+  extends: [...new Set(['./extends/blog', './extends/teacher', ...ENV_EXTENDS, ...ENABLED_MODULES])],
 
   modules: ['@nuxt/eslint', '@nuxt/ui', '@nuxtjs/i18n'],
 

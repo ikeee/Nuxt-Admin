@@ -1,8 +1,9 @@
-import { count, eq, inArray } from 'drizzle-orm'
+import { count, eq, inArray, sql } from 'drizzle-orm'
 import type { Database } from './index'
 import {
   users as usersTable,
   roles as rolesTable,
+  memberships as membershipsTable,
   configs as configsTable,
   templates as templatesTable
 } from './schema'
@@ -84,10 +85,13 @@ const DEFAULT_CONFIGS = [
     value: JSON.stringify([
       { table: 'roles', label: 'Roles', icon: 'i-lucide-shield', order: 10 },
       { table: 'users', label: 'Users', icon: 'i-lucide-users', order: 20 },
-      { table: 'templates', label: 'Templates', icon: 'i-lucide-file-text', order: 25 },
+      { table: 'memberships', label: 'Memberships', icon: 'i-lucide-badge-check', order: 25 },
+      { table: 'templates', label: 'Templates', icon: 'i-lucide-file-text', order: 26 },
       { table: 'files', label: 'Files', icon: 'i-lucide-folder-open', order: 30 },
       { table: 'configs', label: 'Configs', icon: 'i-lucide-settings-2', order: 40 },
-      { table: 'notifications', label: 'Notifications', icon: 'i-lucide-bell-ring', order: 50 }
+      { table: 'notifications', label: 'Notifications', icon: 'i-lucide-bell-ring', order: 50 },
+      { table: 'teacherGroups', label: 'Teacher Groups', icon: 'i-lucide-folder-tree', order: 70 },
+      { table: 'teacherApps', label: 'Teacher Apps', icon: 'i-lucide-layout-grid', order: 80 }
     ]),
     type: 'json',
     description: 'Dashboard left-side menu configuration (JSON array, each item contains table/label/icon/order/hidden)'
@@ -177,6 +181,15 @@ export async function seed(db: Database): Promise<void> {
   // Idempotency: if roles exist, skip roles/users seeding
   const [roleRow] = await db.select({ value: count() }).from(rolesTable)
   if (Number(roleRow?.value ?? 0) > 0) {
+    // Backfill entitlements for databases created before memberships existed.
+    await db.execute(sql`
+      INSERT INTO memberships (user_id, plan_code, status, source)
+      SELECT id, 'free', 'active', 'backfill'
+      FROM users
+      WHERE NOT EXISTS (
+        SELECT 1 FROM memberships WHERE memberships.user_id = users.id
+      )
+    `)
     console.log('[database] Seed skipped (roles already exist)')
     return
   }
@@ -193,39 +206,55 @@ export async function seed(db: Database): Promise<void> {
   }
 
   // 2. Users
+  const isProduction = process.env.NODE_ENV === 'production'
+  const adminPassword = process.env.SEED_ADMIN_PASSWORD || (isProduction ? '' : 'Admin@123')
+  if (!adminPassword) {
+    throw new Error('SEED_ADMIN_PASSWORD is required when seeding a production database')
+  }
   const records = [
     {
       username: 'admin',
       name: 'Administrator',
-      email: 'admin@example.com',
+      email: process.env.SEED_ADMIN_EMAIL || 'admin@example.com',
       telephone: '13800000000',
-      passwordHash: hashPassword('Admin@123'),
+      passwordHash: hashPassword(adminPassword),
       isActive: true,
       roleId: adminRole.id,
       emailVerifiedAt: new Date()
     }
   ]
-  for (let i = 1; i <= 30; i++) {
-    const num = String(i).padStart(2, '0')
-    records.push({
-      username: `test${num}`,
-      name: `Test User ${num}`,
-      email: `test${num}@example.com`,
-      telephone: '13900000000',
-      passwordHash: hashPassword('Test@123'),
-      isActive: true,
-      roleId: userRole.id,
-      emailVerifiedAt: new Date()
-    })
+  if (!isProduction) {
+    for (let i = 1; i <= 30; i++) {
+      const num = String(i).padStart(2, '0')
+      records.push({
+        username: `test${num}`,
+        name: `Test User ${num}`,
+        email: `test${num}@example.com`,
+        telephone: '13900000000',
+        passwordHash: hashPassword('Test@123'),
+        isActive: true,
+        roleId: userRole.id,
+        emailVerifiedAt: new Date()
+      })
+    }
   }
-  await db.insert(usersTable).values(records)
+  const seededUsers = await db.insert(usersTable).values(records).returning({ id: usersTable.id })
+  await db.insert(membershipsTable).values(seededUsers.map(user => ({
+    userId: user.id,
+    planCode: 'free',
+    status: 'active',
+    source: 'seed'
+  })))
 
   console.log(`[database] Seeded: 2 roles, ${records.length} users, ${DEFAULT_CONFIGS.length} configs`)
 }
 
 /** Default menu items from newer versions (merged into any existing dashboard.menu config). */
 const NEW_DEFAULT_MENU_ENTRIES: Array<{ table: string; label: string; icon: string; order: number }> = [
-  { table: 'templates', label: 'Templates', icon: 'i-lucide-file-text', order: 25 }
+  { table: 'memberships', label: 'Memberships', icon: 'i-lucide-badge-check', order: 25 },
+  { table: 'templates', label: 'Templates', icon: 'i-lucide-file-text', order: 26 },
+  { table: 'teacherGroups', label: 'Teacher Groups', icon: 'i-lucide-folder-tree', order: 70 },
+  { table: 'teacherApps', label: 'Teacher Apps', icon: 'i-lucide-layout-grid', order: 80 }
 ]
 
 /**

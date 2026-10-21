@@ -41,12 +41,12 @@ export function useAuth() {
     }
   }
 
-  async function register(username: string, email: string, password: string): Promise<PublicUser> {
+  async function register(username: string, email: string, password: string, captchaId?: string, captchaText?: string): Promise<PublicUser> {
     loading.value = true
     try {
       const data = await $fetch<{ user: PublicUser }>('/api/auth/register', {
         method: 'POST',
-        body: { username, email, password }
+        body: { username, email, password, captchaId, captchaText }
       })
       user.value = data.user
       return data.user

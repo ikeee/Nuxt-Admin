@@ -15,6 +15,10 @@ import {
   doublePrecision
 } from 'drizzle-orm/pg-core'
 
+// Teacher-facing cards live in the Nuxt layer but are re-exported here so
+// Drizzle Kit can generate one migration for the whole application.
+export * from '../../extends/teacher/server/database/schema'
+
 export const roles = pgTable(
   'roles',
   {
@@ -235,6 +239,35 @@ export const privateMessages = pgTable(
 
 export type FileRecord = typeof files.$inferSelect
 export type NewFileRecord = typeof files.$inferInsert
+
+// Access entitlement for a user. Users can have an account without being
+// entitled to paid/restricted features. One row per user keeps the MVP simple;
+// payment flows can later update planCode/status/expiresAt in place or replace
+// this with a history table.
+export const memberships = pgTable(
+  'memberships',
+  {
+    id: serial('id').primaryKey(),
+    userId: integer('user_id').notNull(),
+    planCode: varchar('plan_code', { length: 50 }).default('free').notNull(),
+    status: varchar('status', { length: 20 }).default('active').notNull(),
+    source: varchar('source', { length: 40 }).default('registration').notNull(),
+    startedAt: timestamp('started_at', { withTimezone: true }).defaultNow().notNull(),
+    expiresAt: timestamp('expires_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull()
+  },
+  table => ({
+    userIdx: uniqueIndex('memberships_user_id_idx').on(table.userId),
+    statusIdx: index('memberships_status_idx').on(table.status),
+    userFk: foreignKey({ columns: [table.userId], foreignColumns: [users.id] })
+      .onDelete('cascade')
+      .onUpdate('cascade')
+  })
+)
+
+export type Membership = typeof memberships.$inferSelect
+export type NewMembership = typeof memberships.$inferInsert
 
 export type Notification = typeof notifications.$inferSelect
 export type NewNotification = typeof notifications.$inferInsert

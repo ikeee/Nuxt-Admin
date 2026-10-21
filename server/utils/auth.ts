@@ -61,7 +61,15 @@ export function isAdmin(ctx: AuthContext): boolean {
 // --- Role-based dashboard table access (RBAC) ---
 
 /** Sensitive tables accessible only to admins (users/roles/configs, etc.). */
-export const ADMIN_ONLY_TABLES = new Set(['roles', 'users', 'files', 'configs'])
+export const ADMIN_ONLY_TABLES = new Set([
+  'roles',
+  'users',
+  'files',
+  'configs',
+  'memberships',
+  'teacherGroups',
+  'teacherApps'
+])
 
 /** Fine-grained operations on dashboard tables: read=view/export, create=add/import, update=edit, delete=remove/batch */
 export type TableAction = 'read' | 'create' | 'update' | 'delete'

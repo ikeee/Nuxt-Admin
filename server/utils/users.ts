@@ -1,7 +1,7 @@
 import { eq, or, count, asc, desc, inArray, isNull, isNotNull, ilike, and } from 'drizzle-orm'
 import type { PgColumn } from 'drizzle-orm/pg-core'
 import { db } from './db'
-import { users, roles } from '../database/schema'
+import { users, roles, memberships } from '../database/schema'
 import { hashPassword, verifyPassword } from './password'
 
 export type UserRow = typeof users.$inferSelect
@@ -52,16 +52,28 @@ export async function createUser(input: {
   telephone?: string | null
 }): Promise<UserRow> {
   const passwordHash = hashPassword(input.password)
-  const [row] = await db.insert(users).values({
-    username: input.username,
-    name: input.name ?? null,
-    email: input.email,
-    telephone: input.telephone ?? null,
-    passwordHash,
-    roleId: input.roleId
-  }).returning()
-  if (!row) throw new Error('Failed to create user')
-  return row
+  return db.transaction(async (tx) => {
+    const [row] = await tx.insert(users).values({
+      username: input.username,
+      name: input.name ?? null,
+      email: input.email,
+      telephone: input.telephone ?? null,
+      passwordHash,
+      roleId: input.roleId
+    }).returning()
+    if (!row) throw new Error('Failed to create user')
+
+    // New accounts are immediately usable in the current product decision.
+    // Keeping this in the same transaction avoids an account without access.
+    await tx.insert(memberships).values({
+      userId: row.id,
+      planCode: 'free',
+      status: 'active',
+      source: 'registration'
+    })
+
+    return row
+  })
 }
 
 export async function updateUserPassword(userId: number, newPassword: string): Promise<void> {

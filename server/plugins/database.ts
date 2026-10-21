@@ -10,10 +10,13 @@ import { registerDrizzleSchema } from '../utils/dashboard/tables'
 const DEFAULT_DASHBOARD_MENU = [
   { table: 'roles', label: 'Roles', icon: 'i-lucide-shield', order: 10 },
   { table: 'users', label: 'Users', icon: 'i-lucide-users', order: 20 },
+  { table: 'memberships', label: 'Memberships', icon: 'i-lucide-badge-check', order: 25 },
   { table: 'files', label: 'Files', icon: 'i-lucide-folder-open', order: 30 },
   { table: 'notifications', label: 'Notifications', icon: 'i-lucide-bell-ring', order: 40 },
   { table: 'templates', label: 'Templates', icon: 'i-lucide-file-text', order: 50 },
-  { table: 'configs', label: 'System Config', icon: 'i-lucide-settings-2', order: 60 }
+  { table: 'configs', label: 'System Config', icon: 'i-lucide-settings-2', order: 60 },
+  { table: 'teacherGroups', label: 'Teacher Groups', icon: 'i-lucide-folder-tree', order: 70 },
+  { table: 'teacherApps', label: 'Teacher Apps', icon: 'i-lucide-layout-grid', order: 80 }
 ]
 
 export default defineNitroPlugin(async () => {

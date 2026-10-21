@@ -77,7 +77,7 @@ async function refreshCaptcha() {
 }
 
 watch(mode, (m) => {
-  if (m === 'login' && captchaEnabled.value && !captcha.value) refreshCaptcha()
+  if ((m === 'login' || m === 'register') && captchaEnabled.value && !captcha.value) refreshCaptcha()
 }, { immediate: true })
 
 // --- Third-party sign-in (SSO / OAuth2) ---
@@ -154,7 +154,11 @@ async function submit() {
         errorMsg.value = t('auth.errors.passwordTooShort')
         return
       }
-      const user = await register(form.username, form.email, form.password)
+      if (captchaEnabled.value && !captchaText.value) {
+        errorMsg.value = t('auth.errors.captchaRequired')
+        return
+      }
+      const user = await register(form.username, form.email, form.password, captcha.value?.id, captchaText.value)
       emit('success', user)
       if (props.redirectOnSuccess) {
         await navigateTo('/')
@@ -173,7 +177,7 @@ async function submit() {
   } catch (e: unknown) {
     errorMsg.value = isAuthError(e) ? e.message : t('auth.errors.generic')
     // Captcha already consumed/expired: after a failure, refresh with a brand-new captcha
-    if (mode.value === 'login' && captchaEnabled.value) refreshCaptcha()
+    if ((mode.value === 'login' || mode.value === 'register') && captchaEnabled.value) refreshCaptcha()
   } finally {
     loading.value = false
   }
@@ -327,6 +331,31 @@ async function submit() {
             :placeholder="t('auth.fields.passwordConfirmPlaceholder')"
             class="w-full"
           />
+        </UFormField>
+        <UFormField
+          v-if="captchaEnabled"
+          :label="t('auth.fields.captcha')"
+          name="captcha"
+        >
+          <div class="flex items-center gap-2">
+            <UInput
+              v-model="captchaText"
+              type="text"
+              :placeholder="t('auth.fields.captchaPlaceholder')"
+              class="flex-1"
+              autocomplete="off"
+            />
+            <button
+              type="button"
+              class="shrink-0 cursor-pointer rounded border border-default bg-elevated p-0.5 leading-none transition hover:opacity-80"
+              :title="t('auth.fields.captchaRefresh')"
+              :disabled="captchaLoading"
+              @click="refreshCaptcha"
+            >
+              <span v-if="captcha?.svg" class="block h-10" v-html="captcha.svg" />
+              <span v-else class="flex h-10 w-[120px] items-center justify-center text-xs text-muted">{{ captchaLoading ? t('common.loading') : '···' }}</span>
+            </button>
+          </div>
         </UFormField>
       </template>
 
