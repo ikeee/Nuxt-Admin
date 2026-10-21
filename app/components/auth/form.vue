@@ -78,7 +78,22 @@ async function refreshCaptcha() {
 
 watch(mode, (m) => {
   if ((m === 'login' || m === 'register') && captchaEnabled.value && !captcha.value) refreshCaptcha()
-}, { immediate: true })
+})
+
+// Do not start the captcha request during setup: the SVG arriving before
+// hydration would make the server and client DOM differ. Fetch it after mount
+// instead, so the first hydrated render is always the same empty placeholder.
+onMounted(() => {
+  if ((mode.value === 'login' || mode.value === 'register') && captchaEnabled.value && !captcha.value) {
+    refreshCaptcha()
+  }
+})
+
+watch(captchaEnabled, (enabled) => {
+  if (enabled && (mode.value === 'login' || mode.value === 'register') && !captcha.value) {
+    refreshCaptcha()
+  }
+})
 
 // --- Third-party sign-in (SSO / OAuth2) ---
 const { data: oauthData } = await useAsyncData('auth:oauth', () =>
