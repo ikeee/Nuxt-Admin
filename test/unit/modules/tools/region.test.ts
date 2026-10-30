@@ -68,7 +68,9 @@ describe('tool region metadata', () => {
     expect(resources.length).toBeGreaterThan(20)
     for (const tool of resources) {
       expect(tool.runtime).toBe('external')
-      expect(tool.externalHref).toMatch(/^https:\/\//)
+      // dzkbw.com does not serve HTTPS; the catalog intentionally uses HTTP
+      // for this one legacy resource while keeping every other link HTTPS.
+      expect(tool.externalHref).toMatch(tool.id === 'cn-dzkbw' ? /^http:\/\// : /^https:\/\//)
       expect(tool.regions).toHaveLength(1)
       expect(toolRegions(tool)).toHaveLength(1)
     }
