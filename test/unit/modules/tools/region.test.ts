@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { TOOLS, toolAvailableIn, toolRegionScope, toolRegions } from '../../../../modules/tools/shared/tools.manifest'
+import { TOOLS, toolAvailableIn, toolRegionScope, toolRegions, toolSpace } from '../../../../modules/tools/shared/tools.manifest'
 import { detectToolRegion, isCardVisibleInRegion, isMainlandTimezone } from '../../../../modules/tools/server/utils/region'
 
 describe('detectToolRegion', () => {
@@ -38,6 +38,20 @@ describe('tool region metadata', () => {
       expect(toolAvailableIn(tool, 'cn')).toBe(true)
       expect(toolAvailableIn(tool, 'global')).toBe(false)
     }
+  })
+
+  it('places the China downloaders in the member-only education catalog', () => {
+    for (const id of ['bili', 'xhs', 'music']) {
+      const tool = TOOLS.find(item => item.id === id)!
+      expect(tool.visibility).toBe('member')
+      expect(toolSpace(tool)).toBe('edu')
+    }
+  })
+
+  it('leaves the YouTube downloader unchanged', () => {
+    const youtube = TOOLS.find(item => item.id === 'youtube')!
+    expect(youtube.visibility).toBe('authenticated')
+    expect(toolSpace(youtube)).toBe('office')
   })
 
   it('keeps browser-local tools available in both versions', () => {
