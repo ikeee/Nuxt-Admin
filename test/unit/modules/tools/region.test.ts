@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { TOOLS, toolAvailableIn, toolRegionScope, toolRegions, toolSpace } from '../../../../modules/tools/shared/tools.manifest'
+import { TOOLS, toolAvailableIn, toolHref, toolRegionScope, toolRegions, toolSpace } from '../../../../modules/tools/shared/tools.manifest'
 import { detectToolRegion, isCardVisibleInRegion, isMainlandTimezone } from '../../../../modules/tools/server/utils/region'
 
 describe('detectToolRegion', () => {
@@ -45,6 +45,7 @@ describe('tool region metadata', () => {
       const tool = TOOLS.find(item => item.id === id)!
       expect(tool.visibility).toBe('member')
       expect(toolSpace(tool)).toBe('edu')
+      expect(toolHref(tool)).toBe(`/tools/${id}`)
     }
   })
 
